@@ -1,82 +1,122 @@
-<div align="center">
+# 💰 Personal Finance Tracker with Visual Analytics
 
-# 💰 Personal Finance Tracker
+A full-stack web application built with Python and Streamlit to track, manage and visualize daily expenses — including auto-import from Paytm UPI PDF statements.
 
-**Track your daily expenses smartly — visualize, analyze, and stay in control.**
-
-[![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)](https://pandas.pydata.org/)
-[![Matplotlib](https://img.shields.io/badge/Matplotlib-11557C?style=for-the-badge&logo=python&logoColor=white)](https://matplotlib.org/)
-
-</div>
+🔗 **Live Demo:** https://personal-finance-tracker-hvurvtpaixefbvmzkzy2sx.streamlit.app
 
 ---
 
-## 🌟 Features
+## ✨ Features
 
-- ➕ **Add / �️ Delete Expenses** — Log and manage expenses by date, category, amount & description
-- � **Pie Chart & � Bar Graph** — Category-wise breakdown and monthly spending trends
-- 💳 **Paytm PDF Import** — Auto-import transactions from Paytm UPI statement PDFs
-- 📌 **Summary Dashboard** — Total spent, transaction count, highest expense & top category
+- ➕ **Add Expenses** — date, category, amount and description
+- 🗑️ **Delete Expenses** — remove any entry instantly
+- 📋 **Expense Table** — view all expenses with total spent
+- 📊 **Pie Chart** — category wise spending breakdown
+- 📈 **Bar Graph** — monthly spending summary
+- 🏦 **Paytm PDF Import** — auto-import transactions from Paytm UPI statement
+- 📊 **Summary Dashboard** — total spent, transactions, highest expense, top category
+- 💾 **CSV Storage** — data persists across sessions
 
 ---
 
-## ⚡ Getting Started
+## 🛠️ Tech Stack
 
+| Technology | Purpose |
+|-----------|---------|
+| Python | Core programming language |
+| Streamlit | Web interface |
+| Pandas | Data handling and CSV operations |
+| Matplotlib | Pie charts and bar graphs |
+| pdfplumber | Paytm PDF statement parsing |
+| openpyxl | Excel file support |
+
+---
+
+## 🚀 Run Locally
+
+**1. Clone the repository**
 ```bash
-# 1. Clone the repo
-git clone https://github.com/Shanky085/expense-tracker.git
-cd expense-tracker
+git clone https://github.com/Shanky085/personal-finance-tracker.git
+cd personal-finance-tracker
+```
 
-# 2. Create virtual environment (recommended)
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS / Linux
+**2. Install dependencies**
+```bash
+pip install -r requirements.txt
+```
 
-# 3. Install dependencies
-pip install streamlit pandas matplotlib pdfplumber
-
-# 4. Run the app
+**3. Run the app**
+```bash
 streamlit run app.py
 ```
 
-App opens at **`http://localhost:8501`** 🚀
-
----
-
-## 🚀 Usage
-
-| Action | How |
-|---|---|
-| **Add Expense** | Fill in date, category, amount & description → click *"Add Expense"* |
-| **Delete Expense** | Select an entry from the dropdown → click *"Delete Expense"* |
-| **View Charts** | Scroll down to see pie chart & monthly bar graph |
-| **Import Paytm PDF** | Upload your Paytm UPI statement → preview → click *"Import All"* |
-
----
-
-## 📂 Project Structure
-
+**4. Open browser**
 ```
-expense-tracker/
-├── app.py            # Main Streamlit application
-├── expenses.csv      # Expense data (auto-generated)
-└── README.md         # Documentation
+http://localhost:8501
 ```
 
 ---
 
-## 🤝 Contributing
+## 📁 Project Structure
 
-1. **Fork** → **Branch** (`git checkout -b feature/your-feature`) → **Commit** → **Push** → **PR**
-
-**Ideas:** expense editing, PDF reports, budget alerts, multi-currency support, dark mode
+```
+expense_tracker/
+│
+├── app.py              # Main Streamlit application
+├── requirements.txt    # Python dependencies
+├── expenses.csv        # Local data storage (auto-created)
+└── README.md           # Project documentation
+```
 
 ---
 
-<div align="center">
+## 📸 Screenshots
 
-**Made with ❤️ using Python & Streamlit** · ⭐ *Star this repo if you found it useful!*
+### Dashboard
+![Dashboard](screenshots/dashboard.png)
 
-</div>
+### Pie Chart
+![Pie Chart](screenshots/piechart.png)
+
+### Monthly Summary
+![Bar Graph](screenshots/bargraph.png)
+
+---
+
+## 🔑 Key Features Explained
+
+### Paytm PDF Auto-Import
+The app reads your Paytm UPI statement PDF and automatically:
+- Extracts all transactions
+- Maps Paytm tags to expense categories
+- Imports only payments (skips received money)
+- Shows preview before importing
+
+### Smart Category Mapping
+| Paytm Tag | App Category |
+|-----------|-------------|
+| Food | Food |
+| Groceries | Food |
+| Medical | Health |
+| Taxi | Transport |
+| Shopping | Shopping |
+| Miscellaneous | Other |
+
+---
+
+## 👨‍💻 Developer
+
+**Shanky Pal**
+- 1st Year B.Tech CSE Student
+- GitHub: [Shanky085](https://github.com/Shanky085)
+- LinkedIn: [shanky-pal](https://www.linkedin.com/in/shanky-pal-b27413174)
+
+---
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+---
+
+⭐ If you found this useful, please give it a star on GitHub!
