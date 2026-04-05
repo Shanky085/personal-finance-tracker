@@ -1,6 +1,13 @@
 <div align="center">
-  <h1>💰 Personal Finance Tracker v2.0</h1>
-  <p>Track your income & expenses smartly with a visually stunning AI-powered dashboard.</p>
+
+# 💰 FinanceFlow
+
+**AI-Powered Personal Finance Management**
+
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Click_Here-success?style=for-the-badge)](YOUR_STREAMLIT_URL)
+[![GitHub Stars](https://img.shields.io/github/stars/Shanky085/personal-finance-tracker?style=social)](https://github.com/Shanky085/personal-finance-tracker)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg?style=social)](https://github.com/Shanky085/personal-finance-tracker/releases)
+
 </div>
 
 ---
@@ -40,6 +47,24 @@ Personal Finance Tracker v2.0 introduces a massive architecture and UI upgrade o
 
 ### 📈 Interactive Charts
 ![Charts and Trends](screenshots/charts_expenses.png)
+
+---
+
+## 🤖 ADK FinanceAgent (Competition Feature)
+
+This project includes an advanced conversational AI agent built with the Gemini ADK framework:
+
+- **Tool-calling capabilities**: Agent can execute financial calculations, data queries, and analysis
+- **Multi-turn conversations**: Natural dialogue for financial planning
+- **Context awareness**: Remembers previous interactions for personalized advice
+
+### Key Agent Features:
+- Budget analysis and recommendations
+- Spending pattern detection
+- Goal-based financial planning
+- Natural language transaction queries
+
+*This agent demonstrates advanced AI integration beyond basic API calls.*
 
 ---
 
