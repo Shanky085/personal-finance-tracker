@@ -12,14 +12,28 @@ Date: 2026-04-05
 
 import streamlit as st
 import pandas as pd
-import os
-from dotenv import load_dotenv
+import numpy as np
 from datetime import datetime
+import os
+import pdfplumber
+from dotenv import load_dotenv
+
+# Utils imports
+from utils.data_handler import load_data, save_data, EXPENSE_CATEGORIES, INCOME_CATEGORIES
+from utils.charts import create_expense_pie_chart, create_income_vs_expense_chart, create_balance_trend_chart
+
+# AI imports (conditional)
+try:
+    from google import genai
+    AI_AVAILABLE = True
+except ImportError:
+    AI_AVAILABLE = False
+    st.warning("⚠️ AI features unavailable. Install: pip install google-genai")
+
+__version__ = "2.0.1"
 
 # Load from .env for local, st.secrets for cloud
 load_dotenv()
-from utils.data_handler import load_data, save_data, EXPENSE_CATEGORIES, INCOME_CATEGORIES
-from utils.charts import create_expense_pie_chart, create_income_vs_expense_chart, create_balance_trend_chart
 
 # ── PAGE CONFIG ──────────────────────────
 st.set_page_config(
@@ -165,23 +179,20 @@ with tab_overview:
             current_month = datetime.now().month
             current_year = datetime.now().year
 
-            # Ensure Date column is in datetime format
-            df["_temp_date"] = pd.to_datetime(df["Date"], format="mixed", errors="coerce")
-
-            if 'Type' in df.columns:
-                current_month_expenses = df[
-                    (df['Type'] == 'Expense') &
-                    (df['_temp_date'].dt.month == current_month) &
-                    (df['_temp_date'].dt.year == current_year)
-                ]['Amount'].sum()
+            if not df.empty and 'Type' in df.columns:
+                try:
+                    df["_temp_date"] = pd.to_datetime(df["Date"], format="mixed", errors="coerce")
+                    current_month_expenses = df[
+                        (df['Type'] == 'Expense') &
+                        (df['_temp_date'].dt.month == current_month) &
+                        (df['_temp_date'].dt.year == current_year)
+                    ]['Amount'].sum()
+                    df = df.drop(columns=["_temp_date"])
+                except (KeyError, AttributeError) as e:
+                    st.warning(f"⚠️ Error calculating budget: {e}")
+                    current_month_expenses = 0
             else:
-                current_month_expenses = df[
-                    (df['_temp_date'].dt.month == current_month) &
-                    (df['_temp_date'].dt.year == current_year)
-                ]['Amount'].sum()
-
-            # Drop the temporary column
-            df = df.drop(columns=["_temp_date"])
+                current_month_expenses = 0
 
             # Budget input
             monthly_budget = st.number_input(
@@ -381,11 +392,25 @@ with tab_add:
         amount = st.number_input("Amount (₹)", min_value=0.0, format="%.2f")
         description = st.text_input("Description", placeholder="e.g. Lunch at canteen")
 
-    if st.button("Add Transaction", type="primary"):
-        if amount == 0:
-            st.error("Amount cannot be zero!")
-        elif description == "":
-            st.error("Please enter a description!")
+    if st.button("💾 Add Transaction", type="primary"):
+        # Validation
+        errors = []
+
+        if amount <= 0:
+            errors.append("Amount must be greater than 0")
+
+        if not category:
+            errors.append("Please select a category")
+
+        if date > datetime.now().date():
+            errors.append("Future dates not allowed")
+
+        if not description:
+            errors.append("Please enter a description")
+
+        if errors:
+            for error in errors:
+                st.error(f"⚠️ {error}")
         else:
             new_row = pd.DataFrame([{
                 "Date": str(date),
@@ -584,7 +609,6 @@ with tab_import:
 
     if uploaded_file is not None:
         try:
-            import pdfplumber
             import re
 
             transactions = []
@@ -666,7 +690,10 @@ with tab_import:
                                             "Type": trans_type
                                         })
                                 except (ValueError, AttributeError, KeyError) as e:
-                                    st.warning(f"⚠️ Skipped malformed transaction: {e}")
+                                    st.warning(f"⚠️ Line {i}: Skipped invalid data - {str(e)[:50]}")
+                                    continue
+                                except Exception as e:
+                                    st.error(f"❌ Unexpected error on line {i}: {type(e).__name__}")
                                     continue
 
                         i += 1
@@ -697,7 +724,7 @@ with tab_import:
 # ── FOOTER ───────────────────────────────
 st.markdown("---")
 st.markdown(
-    "<p style='text-align:center; color:gray;'>Personal Finance Tracker v2.0 | "
+    f"<p style='text-align:center; color:gray;'>Personal Finance Tracker v{__version__} | "
     "Built with Python & Streamlit</p>",
     unsafe_allow_html=True
 )
