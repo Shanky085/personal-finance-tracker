@@ -290,18 +290,6 @@ with tab_overview:
             """, unsafe_allow_html=True)
 
 
-                    st.markdown(f"""
-                    <div class="glass-card" style="margin-top: 1rem;">
-                        {response.text}
-                    </div>
-                    """, unsafe_allow_html=True)
-
-            except ImportError:
-                st.error("❌ google-genai not installed. Run: pip install google-genai")
-            except Exception as e:
-                st.warning(f"⚠️ AI feature unavailable: {e}")
-                st.info("💡 Add your GOOGLE_API_KEY to Streamlit secrets to enable AI insights.")
-
         st.markdown("---")
         st.subheader("🕐 Recent Transactions")
         recent = df.tail(5).iloc[::-1]  # Last 5, newest first
