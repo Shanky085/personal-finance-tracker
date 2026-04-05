@@ -289,64 +289,6 @@ with tab_overview:
             </div>
             """, unsafe_allow_html=True)
 
-        # Recent transactions preview
-        st.markdown("---")
-        st.markdown("### 🤖 AI Financial Advisor")
-
-        if st.button("💡 Get Personalized Insights", type="primary"):
-            try:
-                from google import genai
-
-                try:
-                    # Try Streamlit Cloud secrets first
-                    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
-                except (FileNotFoundError, KeyError):
-                    # Fall back to .env for local development
-                    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
-                if not GOOGLE_API_KEY:
-                    st.error("⚠️ API key not configured. Please set GOOGLE_API_KEY in .env or Streamlit secrets.")
-                    st.stop()
-
-                client = genai.Client(api_key=GOOGLE_API_KEY)
-
-                # Prepare financial summary
-                total_income = df[df['Type'] == 'Income']['Amount'].sum() if "Type" in df.columns else 0
-                total_expense = df[df['Type'] == 'Expense']['Amount'].sum() if "Type" in df.columns else df['Amount'].sum()
-
-                if "Type" in df.columns and not df[df['Type'] == 'Expense'].empty:
-                    top_categories = df[df['Type'] == 'Expense'].groupby('Category')['Amount'].sum().nlargest(3)
-                    top_cat_str = ", ".join([f"{cat}: ₹{amt:,.0f}" for cat, amt in top_categories.items()])
-                elif "Type" not in df.columns and not df.empty:
-                    top_categories = df.groupby('Category')['Amount'].sum().nlargest(3)
-                    top_cat_str = ", ".join([f"{cat}: ₹{amt:,.0f}" for cat, amt in top_categories.items()])
-                else:
-                    top_cat_str = "No expenses recorded"
-
-                # Create prompt
-                prompt = f"""
-                You are a personal finance advisor. Analyze this user's financial data and provide actionable advice:
-
-                Financial Summary:
-                - Total Income: ₹{total_income:,.0f}
-                - Total Expenses: ₹{total_expense:,.0f}
-                - Net Savings: ₹{total_income - total_expense:,.0f}
-                - Top Spending Categories: {top_cat_str}
-
-                Provide:
-                1. A brief health assessment of their finances (2-3 sentences)
-                2. Three specific, actionable saving tips based on their spending pattern
-                3. One warning if they're overspending in any category
-
-                Keep the tone friendly and encouraging. Use emojis. Format as bullet points.
-                """
-
-                # Get AI response
-                with st.spinner("🧠 AI analyzing your finances..."):
-                    response = client.models.generate_content(
-                        model='gemini-1.5-flash',
-                        contents=prompt
-                    )
 
                     st.markdown(f"""
                     <div class="glass-card" style="margin-top: 1rem;">
@@ -484,44 +426,60 @@ with tab_history:
         st.metric(label=f"💰 Total ({filter_type})", value=f"₹{total:,.2f}")
 
         # ── Delete Section ───────────────────
-        st.markdown("---")
-        st.subheader("🗑️ Delete Transaction")
+st.markdown("---")
+st.subheader("🗑️ Delete Transaction")
 
-        if filtered_df.empty:
-            st.info("No matching transactions to delete.")
+if filtered_df.empty:
+    st.info("No matching transactions to delete.")
+else:
+    # Create a readable label for each transaction in the filtered view
+    df_with_label = filtered_df.copy()
+
+    # Convert Date to string format FIRST
+    df_with_label["Date_str"] = pd.to_datetime(df_with_label["Date"]).dt.strftime('%Y-%m-%d')
+
+    # Build label safely
+    df_with_label["Label"] = (
+        df_with_label["Date_str"] + " | " +
+        df_with_label["Category"].astype(str) + " | ₹" +
+        df_with_label["Amount"].astype(str) + " | " +
+        df_with_label["Description"].fillna("").astype(str)
+    )
+
+    # Add Type if column exists
+    if "Type" in df_with_label.columns:
+        df_with_label["Label"] = df_with_label["Label"] + " [" + df_with_label["Type"] + "]"
+
+    selected = st.selectbox("Select transaction to delete", df_with_label["Label"])
+
+    if st.button("🗑️ Delete Transaction", type="secondary"):
+        # Find the index of selected row in the ORIGINAL df
+        original_df_labeled = df.copy()
+
+        # Same conversion for original df
+        original_df_labeled["Date_str"] = pd.to_datetime(original_df_labeled["Date"]).dt.strftime('%Y-%m-%d')
+
+        original_df_labeled["Label"] = (
+            original_df_labeled["Date_str"] + " | " +
+            original_df_labeled["Category"].astype(str) + " | ₹" +
+            original_df_labeled["Amount"].astype(str) + " | " +
+            original_df_labeled["Description"].fillna("").astype(str)
+        )
+
+        if "Type" in original_df_labeled.columns:
+            original_df_labeled["Label"] = original_df_labeled["Label"] + " [" + original_df_labeled["Type"] + "]"
+
+        # Find index to delete
+        matching_rows = original_df_labeled[original_df_labeled["Label"] == selected]
+
+        if not matching_rows.empty:
+            index_to_delete = matching_rows.index[0]
+            df = df.drop(index=index_to_delete).reset_index(drop=True)
+            save_data(df)
+            st.success("✅ Transaction deleted successfully!")
+            st.rerun()
         else:
-            # Create a readable label for each transaction in the filtered view
-            df_with_label = filtered_df.copy()
-            df_with_label["Label"] = (
-                df_with_label["Date"] + " | " +
-                df_with_label["Category"] + " | ₹" +
-                df_with_label["Amount"].astype(str) + " | " +
-                df_with_label["Description"]
-            )
-            if "Type" in df_with_label.columns:
-                df_with_label["Label"] = df_with_label["Label"] + " [" + df_with_label["Type"] + "]"
-
-            selected = st.selectbox("Select transaction to delete", df_with_label["Label"])
-
-            if st.button("Delete Transaction", type="secondary"):
-                # Find the index of selected row in the ORIGINAL df
-                original_df_labeled = df.copy()
-                original_df_labeled["Label"] = (
-                    original_df_labeled["Date"] + " | " +
-                    original_df_labeled["Category"] + " | ₹" +
-                    original_df_labeled["Amount"].astype(str) + " | " +
-                    original_df_labeled["Description"]
-                )
-                if "Type" in original_df_labeled.columns:
-                    original_df_labeled["Label"] = original_df_labeled["Label"] + " [" + original_df_labeled["Type"] + "]"
-
-                # Find index to delete
-                index_to_delete = original_df_labeled[original_df_labeled["Label"] == selected].index[0]
-                df = df.drop(index=index_to_delete).reset_index(drop=True)
-                save_data(df)
-                st.success("Transaction deleted successfully! ✅")
-                st.rerun()
-
+            st.error("❌ Could not find transaction to delete")
         st.markdown("---")
         st.markdown("### 📥 Export & Import")
 
