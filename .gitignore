@@ -1,18 +1,38 @@
-# Secrets (NEVER commit these)
+# Secrets & Environment
 .env
 .streamlit/secrets.toml
 config.yaml
 *_secrets.yaml
 *.pem
 *.key
-credentials.json
 
-# Python
-__pycache__/
-*.pyc
-venv/
-
-# Data
+# Data files (financial data should NEVER be committed)
+expenses.csv
 data/*.csv
 data/*.db
 *.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit cache
+.streamlit/cache/

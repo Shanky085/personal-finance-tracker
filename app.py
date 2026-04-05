@@ -3,7 +3,7 @@ Personal Finance Tracker v2.0
 =============================
 
 A comprehensive Streamlit Dashboard for local personal financial tracking.
-Features an AI-powered financial advisor, visually stunning glassmorphism 
+Features an AI-powered financial advisor, visually stunning glassmorphism
 UI components, and dynamically generated Plotly analytical figures.
 
 Author: Shank
@@ -14,11 +14,12 @@ import streamlit as st
 import pandas as pd
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 # Load from .env for local, st.secrets for cloud
 load_dotenv()
 from utils.data_handler import load_data, save_data, EXPENSE_CATEGORIES, INCOME_CATEGORIES
-from utils.charts import plot_category_pie, plot_monthly_bar
+from utils.charts import create_expense_pie_chart, create_income_vs_expense_chart, create_balance_trend_chart
 
 # ── PAGE CONFIG ──────────────────────────
 st.set_page_config(
@@ -136,7 +137,7 @@ with tab_overview:
                 <div class="metric-label">💰 Total Income</div>
             </div>
             """, unsafe_allow_html=True)
-            
+
         with col2:
             st.markdown(f"""
             <div class="metric-container expense-metric">
@@ -144,7 +145,7 @@ with tab_overview:
                 <div class="metric-label">💸 Total Expenses</div>
             </div>
             """, unsafe_allow_html=True)
-            
+
         with col3:
             balance_class = "income-metric" if balance >= 0 else "expense-metric"
             st.markdown(f"""
@@ -161,39 +162,44 @@ with tab_overview:
 
         with col1:
             # Get current month's expenses
-            from datetime import datetime
             current_month = datetime.now().month
             current_year = datetime.now().year
-            
+
             # Ensure Date column is in datetime format
             df["_temp_date"] = pd.to_datetime(df["Date"], format="mixed", errors="coerce")
-            
-            current_month_expenses = df[
-                (df['Type'] == 'Expense') & 
-                (df['_temp_date'].dt.month == current_month) & 
-                (df['_temp_date'].dt.year == current_year)
-            ]['Amount'].sum()
-            
+
+            if 'Type' in df.columns:
+                current_month_expenses = df[
+                    (df['Type'] == 'Expense') &
+                    (df['_temp_date'].dt.month == current_month) &
+                    (df['_temp_date'].dt.year == current_year)
+                ]['Amount'].sum()
+            else:
+                current_month_expenses = df[
+                    (df['_temp_date'].dt.month == current_month) &
+                    (df['_temp_date'].dt.year == current_year)
+                ]['Amount'].sum()
+
             # Drop the temporary column
             df = df.drop(columns=["_temp_date"])
-            
+
             # Budget input
             monthly_budget = st.number_input(
-                "Set Monthly Budget (₹)", 
-                min_value=0, 
-                value=st.session_state.monthly_budget, 
+                "Set Monthly Budget (₹)",
+                min_value=0,
+                value=st.session_state.monthly_budget,
                 step=1000,
                 key="budget_input"
             )
             st.session_state.monthly_budget = monthly_budget
-            
+
             # Calculate remaining
             remaining = monthly_budget - current_month_expenses
             progress = min(current_month_expenses / monthly_budget, 1.0) if monthly_budget > 0 else 0
-            
+
             # Progress bar
             st.progress(float(progress))
-            
+
             # Alert messages
             if remaining < 0:
                 st.error(f"⚠️ Over budget by ₹{abs(remaining):,.2f}!")
@@ -256,14 +262,14 @@ with tab_overview:
         with col4:
             total_income = df[df['Type'] == 'Income']['Amount'].sum() if "Type" in df.columns else 0
             total_expense = df[df['Type'] == 'Expense']['Amount'].sum() if "Type" in df.columns else df["Amount"].sum()
-            
+
             # COMPLEX LOGIC EXPLANATION (Savings Rate)
             # The Savings Rate represents the percentage of unspent income.
             # We explicitly guard against division-by-zero errors (if total_income is 0)
             # and allow the mathematical calculation to dip into negative boundaries
             # gracefully representing a state of financial over-spending.
             savings_rate = ((total_income - total_expense) / total_income * 100) if total_income > 0 else 0
-            
+
             st.markdown(f"""
             <div class="glass-card" style="text-align: center; padding: 1rem;">
                 <div style="font-size: 2rem; color: #4facfe;">💹</div>
@@ -275,29 +281,28 @@ with tab_overview:
         # Recent transactions preview
         st.markdown("---")
         st.markdown("### 🤖 AI Financial Advisor")
-        
+
         if st.button("💡 Get Personalized Insights", type="primary"):
             try:
-                import google.generativeai as genai
-                
+                from google import genai
+
                 try:
                     # Try Streamlit Cloud secrets first
                     GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
                 except (FileNotFoundError, KeyError):
                     # Fall back to .env for local development
                     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-                
+
                 if not GOOGLE_API_KEY:
                     st.error("⚠️ API key not configured. Please set GOOGLE_API_KEY in .env or Streamlit secrets.")
                     st.stop()
-                    
-                genai.configure(api_key=GOOGLE_API_KEY)
-                model = genai.GenerativeModel('gemini-2.5-flash')
-                
+
+                client = genai.Client(api_key=GOOGLE_API_KEY)
+
                 # Prepare financial summary
                 total_income = df[df['Type'] == 'Income']['Amount'].sum() if "Type" in df.columns else 0
                 total_expense = df[df['Type'] == 'Expense']['Amount'].sum() if "Type" in df.columns else df['Amount'].sum()
-                
+
                 if "Type" in df.columns and not df[df['Type'] == 'Expense'].empty:
                     top_categories = df[df['Type'] == 'Expense'].groupby('Category')['Amount'].sum().nlargest(3)
                     top_cat_str = ", ".join([f"{cat}: ₹{amt:,.0f}" for cat, amt in top_categories.items()])
@@ -306,37 +311,40 @@ with tab_overview:
                     top_cat_str = ", ".join([f"{cat}: ₹{amt:,.0f}" for cat, amt in top_categories.items()])
                 else:
                     top_cat_str = "No expenses recorded"
-                
+
                 # Create prompt
                 prompt = f"""
                 You are a personal finance advisor. Analyze this user's financial data and provide actionable advice:
-                
+
                 Financial Summary:
                 - Total Income: ₹{total_income:,.0f}
                 - Total Expenses: ₹{total_expense:,.0f}
                 - Net Savings: ₹{total_income - total_expense:,.0f}
                 - Top Spending Categories: {top_cat_str}
-                
+
                 Provide:
                 1. A brief health assessment of their finances (2-3 sentences)
                 2. Three specific, actionable saving tips based on their spending pattern
                 3. One warning if they're overspending in any category
-                
+
                 Keep the tone friendly and encouraging. Use emojis. Format as bullet points.
                 """
-                
+
                 # Get AI response
                 with st.spinner("🧠 AI analyzing your finances..."):
-                    response = model.generate_content(prompt)
-                    
+                    response = client.models.generate_content(
+                        model='gemini-1.5-flash',
+                        contents=prompt
+                    )
+
                     st.markdown(f"""
                     <div class="glass-card" style="margin-top: 1rem;">
                         {response.text}
                     </div>
                     """, unsafe_allow_html=True)
-                    
+
             except ImportError:
-                st.error("❌ google-generativeai not installed. Run: pip install google-generativeai")
+                st.error("❌ google-genai not installed. Run: pip install google-genai")
             except Exception as e:
                 st.warning(f"⚠️ AI feature unavailable: {e}")
                 st.info("💡 Add your GOOGLE_API_KEY to Streamlit secrets to enable AI insights.")
@@ -400,7 +408,6 @@ with tab_history:
     if df.empty:
         st.info("No transactions added yet. Add your first transaction in the **➕ Add Transaction** tab!")
     else:
-        # ── Filter Options (NEW) ─────────────
         # ── Filter Options ─────────────
         st.markdown("### 🔍 Filter Transactions")
 
@@ -408,11 +415,11 @@ with tab_history:
 
         with col1:
             filter_type = st.selectbox("Filter by Type", ["All", "Income", "Expense"])
-            
+
         with col2:
             all_categories = ["All"] + sorted(list(df['Category'].unique()))
             filter_category = st.selectbox("Filter by Category", all_categories)
-            
+
         with col3:
             sort_order = st.selectbox("Sort by Date", ["Newest First", "Oldest First"])
 
@@ -482,14 +489,14 @@ with tab_history:
                 )
                 if "Type" in original_df_labeled.columns:
                     original_df_labeled["Label"] = original_df_labeled["Label"] + " [" + original_df_labeled["Type"] + "]"
-                    
+
                 # Find index to delete
                 index_to_delete = original_df_labeled[original_df_labeled["Label"] == selected].index[0]
                 df = df.drop(index=index_to_delete).reset_index(drop=True)
                 save_data(df)
                 st.success("Transaction deleted successfully! ✅")
                 st.rerun()
-                
+
         st.markdown("---")
         st.markdown("### 📥 Export & Import")
 
@@ -497,7 +504,6 @@ with tab_history:
 
         with col1:
             st.markdown("#### Export Data")
-            from datetime import datetime
             csv = df.to_csv(index=False)
             st.download_button(
                 label="📥 Download as CSV",
@@ -510,28 +516,28 @@ with tab_history:
         with col2:
             st.markdown("#### Import Data")
             uploaded_file = st.file_uploader("Upload CSV file", type=['csv'], label_visibility="collapsed")
-            
+
             if uploaded_file is not None:
                 try:
                     new_df = pd.read_csv(uploaded_file)
-                    
+
                     # Validate columns
                     required_cols = ['Date', 'Type', 'Category', 'Amount', 'Description']
                     if all(col in new_df.columns for col in required_cols):
-                        
+
                         # Parse dates
                         new_df['Date'] = pd.to_datetime(new_df['Date']).astype(str)
-                        
+
                         # Merge with existing data (avoid duplicates)
                         combined_df = pd.concat([df, new_df]).drop_duplicates(subset=['Date', 'Category', 'Amount', 'Description']).reset_index(drop=True)
-                        
+
                         if st.button("📤 Import Data", type="primary"):
                             save_data(combined_df)
                             st.success(f"✅ Imported {len(new_df)} transactions!")
                             st.rerun()
                     else:
                         st.error(f"❌ Invalid CSV format. Required columns: {required_cols}")
-                        
+
                 except Exception as e:
                     st.error(f"❌ Error reading file: {e}")
 
@@ -547,8 +553,8 @@ with tab_charts:
     else:
         # ── PIE CHART ────────────────────────
         st.subheader("📊 Category Wise Breakdown")
-        
-        fig_pie = plot_category_pie(df)
+
+        fig_pie = create_expense_pie_chart(df)
         if fig_pie is not None:
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
@@ -560,7 +566,7 @@ with tab_charts:
         st.markdown("---")
         st.subheader("📈 Monthly Summary")
 
-        fig_bar = plot_monthly_bar(df)
+        fig_bar = create_income_vs_expense_chart(df)
         if fig_bar is not None:
             st.plotly_chart(fig_bar, use_container_width=True)
         else:
@@ -647,19 +653,21 @@ with tab_import:
                                     sign = amount_match.group(1)
                                     amount_str = amount_match.group(2).replace(",", "")
 
-                            # Only import payments (minus transactions)
                             if amount_str and description:
+                                trans_type = "Income" if sign == "+" else "Expense"
                                 try:
-                                    amount_val = float(amount_str)
-                                    transactions.append({
-                                        "Date": f"{date_str} 2026",
-                                        "Category": tag,
-                                        "Amount": amount_val,
-                                        "Description": description,
-                                        "Type": "Expense"
-                                    })
-                                except:
-                                    pass
+                                    amount_val = float(amount_str.replace(',', ''))
+                                    if amount_val > 0:
+                                        transactions.append({
+                                            "Date": f"{date_str} {datetime.now().year}",
+                                            "Category": tag,
+                                            "Amount": amount_val,
+                                            "Description": description,
+                                            "Type": trans_type
+                                        })
+                                except (ValueError, AttributeError, KeyError) as e:
+                                    st.warning(f"⚠️ Skipped malformed transaction: {e}")
+                                    continue
 
                         i += 1
 

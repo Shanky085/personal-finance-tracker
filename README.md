@@ -59,7 +59,7 @@ Personal Finance Tracker v2.0 introduces a massive architecture and UI upgrade o
 
 ```bash
 # 1. Clone the repository
-git clone <repo-url>
+git clone https://github.com/Shanky085/personal-finance-tracker.git
 cd expense_tracker
 
 # 2. Install dependencies
@@ -90,9 +90,9 @@ Provides a high-level view of your current financial standing. Includes:
 Add an income or expense through an easy-to-use toggle form. Assign Categories, Amounts, and Dates quickly.
 
 ### 3. 📋 Transactions
-View your entire ledger. 
-- You can filter rows instantly by `Type` or `Category` locally in the app layout. 
-- **How to export data**: Simply scroll down to the bottom of the "Transactions" tab, look for **📥 Export & Import**, and click the "Download as CSV" native button. 
+View your entire ledger.
+- You can filter rows instantly by `Type` or `Category` locally in the app layout.
+- **How to export data**: Simply scroll down to the bottom of the "Transactions" tab, look for **📥 Export & Import**, and click the "Download as CSV" native button.
 
 ### 4. 📈 Charts
 A deeply interactive visual page holding Pie Charts and Time-Series breakdown graphs powered by your dataset mapping.
@@ -116,13 +116,13 @@ expense_tracker/
 ├── requirements.txt         # Project dependencies
 ├── README.md                # Project documentation
 ├── CHANGELOG.md             # Version history tracking
-├── utils/                   
+├── utils/
 │   ├── __init__.py
 │   └── data_handler.py      # Core logic handling CSV operations natively
 ├── data/
 │   └── transactions.csv     # Local storage database
 └── .streamlit/
-    └── secrets.toml         # Local secrets (API keys) Environment 
+    └── secrets.toml         # Local secrets (API keys) Environment
 ```
 
 ---

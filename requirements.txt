@@ -1,8 +1,18 @@
-streamlit
-pandas
-matplotlib
-pdfplumber
-openpyxl
-google-generativeai
-plotly>=5.0.0
-python-dotenv>=1.0.0
+# Core Framework
+streamlit>=1.30.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+numpy>=1.24.0,<2.0.0
+
+# Visualization
+plotly>=5.18.0,<6.0.0
+matplotlib>=3.7.0,<4.0.0
+
+# AI Integration (NEW SDK)
+google-genai>=0.2.0,<1.0.0
+
+# PDF Processing
+pdfplumber>=0.10.0,<1.0.0
+openpyxl>=3.1.0,<4.0.0
+
+# Environment Management
+python-dotenv>=1.0.0,<2.0.0

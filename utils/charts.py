@@ -1,125 +1,99 @@
-"""
-Data Visualization Module for Personal Finance Tracker v2.0
-
-This module abstracts the heavy lifting for generating interactive analytical figures.
-We use Plotly Express to create dynamic, hoverable glassmorphic-styled charts.
-"""
-
-import pandas as pd
 import plotly.express as px
-import streamlit as st
+import plotly.graph_objects as go
+import pandas as pd
 
-@st.cache_data
-def plot_category_pie(df: pd.DataFrame):
-    """
-    Generate an interactive pie chart representing total expenses structurally categorized.
-    
-    This function isolates 'Expense' typed transactions, aggregates their amounts,
-    and constructs a Plotly pie chart customized with a dark/transparent theme 
-    to visually match the Streamlit dashboard aesthetic.
-    
-    Args:
-        df (pd.DataFrame): The active operational DataFrame encompassing all transactions.
-        
-    Returns:
-        plotly.graph_objs._figure.Figure or None: 
-            A populated Plotly Express Figure object ready to be rendered in Streamlit.
-            Returns None if there are absolutely no expenses logged.
-            
-    Example:
-        >>> fig = plot_category_pie(transaction_dataframe)
-        >>> if fig: st.plotly_chart(fig)
-    """
-    # Isolate strictly expenses for categorization mapping
-    chart_df = df[df["Type"] == "Expense"] if "Type" in df.columns else df
-    
-    if chart_df.empty:
-        return None
-        
-    category_data = chart_df.groupby("Category", as_index=False)["Amount"].sum()
-    
-    try:
-        # PLOTLY CUSTOMIZATION:
-        # 1. We use a defined color sequence (px.colors.qualitative.Pastel) for bright, appealing contrast against dark modes.
-        # 2. hole=0.4 creates a modern 'donut' chart aesthetic instead of a flat pie.
-        fig = px.pie(
-            category_data,
-            names="Category",
-            values="Amount",
-            hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Pastel
+def get_chart_theme():
+    """Return consistent theme for all Plotly charts"""
+    return dict(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color='rgba(255,255,255,0.8)', family='Poppins'),
+        margin=dict(l=20, r=20, t=40, b=20),
+        legend=dict(
+            bgcolor='rgba(255,255,255,0.05)',
+            bordercolor='rgba(255,255,255,0.1)',
+            borderwidth=1
         )
-        
-        # PLOTLY CUSTOMIZATION: Update layout hides the opaque background forcing transparency
-        # to perfectly overlay on our Streamlit custom CSS gradient background.
-        fig.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            margin=dict(t=40, b=40, l=0, r=0)
-        )
-        
-        return fig
-    except Exception as e:
-        st.error(f"⚠️ Render Error (Pie Chart): The graphics engine encountered a localized failure.")
+    )
+
+def create_expense_pie_chart(df):
+    """Generate pie chart for expenses by category"""
+    expenses_df = df[df['Type'] == 'Expense']
+
+    if expenses_df.empty:
         return None
 
+    category_totals = expenses_df.groupby('Category')['Amount'].sum().reset_index()
 
-@st.cache_data
-def plot_monthly_bar(df: pd.DataFrame):
-    """
-    Generate an interactive bar chart summarizing total transaction amounts historically by month.
-    
-    This abstracts parsing of datetime strings natively into months, groups data collectively, 
-    and returns a Plotly bar chart heavily formatted with tooltips and transparent UI.
-    
-    Args:
-        df (pd.DataFrame): The active operational DataFrame encompassing all transactions.
-        
-    Returns:
-        plotly.graph_objs._figure.Figure or None: 
-            A populated Plotly Express Figure object. Returns None if date parsing fails locally
-            or if the DataFrame strictly lacks chronological elements.
-            
-    Example:
-        >>> fig = plot_monthly_bar(transaction_dataframe)
-        >>> if fig: st.plotly_chart(fig)
-    """
-    chart_df2 = df.copy()
-    
-    # Intelligently convert ambiguous dates dynamically extracting strictly Year-Month layout
-    chart_df2["Month"] = pd.to_datetime(chart_df2["Date"], format='mixed', errors='coerce').dt.strftime("%b %Y")
-    chart_df2 = chart_df2.dropna(subset=["Month"])
-    
-    if chart_df2.empty:
+    fig = px.pie(
+        category_totals,
+        values='Amount',
+        names='Category',
+        hole=0.5,
+        color_discrete_sequence=px.colors.sequential.Plasma
+    )
+
+    fig.update_layout(**get_chart_theme())
+    fig.update_traces(
+        textposition='inside',
+        textinfo='percent+label',
+        hovertemplate='<b>%{label}</b><br>₹%{value:,.0f}<extra></extra>'
+    )
+
+    return fig
+
+def create_income_vs_expense_chart(df):
+    """Generate bar chart comparing income vs expenses by month"""
+    if df.empty:
         return None
-        
-    monthly_data = chart_df2.groupby("Month", as_index=False)["Amount"].sum()
-    
-    try:
-        # PLOTLY CUSTOMIZATION:
-        # 1. Bar charts natively support hover_data. Using text_auto allows amounts to snap directly to the bar.
-        fig = px.bar(
-            monthly_data,
-            x="Month",
-            y="Amount",
-            text_auto="$.2s",
-            color="Month",
-            color_discrete_sequence=px.colors.diverging.Spectral
-        )
-        
-        # PLOTLY CUSTOMIZATION:
-        # 1. Hiding the legend to save screen real estate.
-        # 2. Applying strict margins and transparent background mapping for seamless HTML blending.
-        fig.update_layout(
-            showlegend=False,
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            xaxis_title="Timeline",
-            yaxis_title="Total Transactions (₹)",
-            margin=dict(t=20, b=20, l=20, r=20)
-        )
-        
-        return fig
-    except Exception as e:
-        st.error(f"⚠️ Render Error (Bar Chart): Failed to synthesize timeline mapping.")
+
+    # Add Month column
+    df_copy = df.copy()
+    df_copy['Month'] = df_copy['Date'].dt.to_period('M').astype(str)
+
+    monthly_summary = df_copy.groupby(['Month', 'Type'])['Amount'].sum().reset_index()
+
+    fig = px.bar(
+        monthly_summary,
+        x='Month',
+        y='Amount',
+        color='Type',
+        barmode='group',
+        color_discrete_map={'Income': '#43e97b', 'Expense': '#f5576c'}
+    )
+
+    fig.update_layout(**get_chart_theme())
+    fig.update_traces(hovertemplate='<b>%{x}</b><br>₹%{y:,.0f}<extra></extra>')
+
+    return fig
+
+def create_balance_trend_chart(df):
+    """Generate line chart showing cumulative balance over time"""
+    if df.empty:
         return None
+
+    # Calculate daily balance
+    daily_df = df.groupby(['Date', 'Type'])['Amount'].sum().unstack(fill_value=0).reset_index()
+
+    if 'Income' not in daily_df.columns:
+        daily_df['Income'] = 0
+    if 'Expense' not in daily_df.columns:
+        daily_df['Expense'] = 0
+
+    daily_df['Balance'] = (daily_df['Income'] - daily_df['Expense']).cumsum()
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=daily_df['Date'],
+        y=daily_df['Balance'],
+        mode='lines+markers',
+        name='Balance',
+        line=dict(color='#667eea', width=3),
+        fill='tozeroy',
+        fillcolor='rgba(102, 126, 234, 0.2)',
+        hovertemplate='<b>%{x|%Y-%m-%d}</b><br>₹%{y:,.0f}<extra></extra>'
+    ))
+
+    fig.update_layout(**get_chart_theme(), title="Cumulative Balance Trend")
+
+    return fig
