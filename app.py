@@ -13,6 +13,10 @@ Date: 2026-04-05
 import streamlit as st
 import pandas as pd
 import os
+from dotenv import load_dotenv
+
+# Load from .env for local, st.secrets for cloud
+load_dotenv()
 from utils.data_handler import load_data, save_data, EXPENSE_CATEGORIES, INCOME_CATEGORIES
 from utils.charts import plot_category_pie, plot_monthly_bar
 
@@ -276,11 +280,18 @@ with tab_overview:
             try:
                 import google.generativeai as genai
                 
-                # Configure with API key from Streamlit secrets
-                api_key = st.secrets.get("GOOGLE_API_KEY", st.secrets.get("default", {}).get("GOOGLE_API_KEY"))
-                if not api_key:
-                    raise ValueError("GOOGLE_API_KEY not found in secrets.")
-                genai.configure(api_key=api_key)
+                try:
+                    # Try Streamlit Cloud secrets first
+                    GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+                except (FileNotFoundError, KeyError):
+                    # Fall back to .env for local development
+                    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+                
+                if not GOOGLE_API_KEY:
+                    st.error("⚠️ API key not configured. Please set GOOGLE_API_KEY in .env or Streamlit secrets.")
+                    st.stop()
+                    
+                genai.configure(api_key=GOOGLE_API_KEY)
                 model = genai.GenerativeModel('gemini-2.5-flash')
                 
                 # Prepare financial summary

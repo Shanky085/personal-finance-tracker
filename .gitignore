@@ -1,22 +1,18 @@
+# Secrets (NEVER commit these)
+.env
+.streamlit/secrets.toml
+config.yaml
+*_secrets.yaml
+*.pem
+*.key
+credentials.json
+
 # Python
 __pycache__/
 *.pyc
-*.pyo
+venv/
 
-# Streamlit
-.streamlit/secrets.toml
-screenshots/
-
-# Environment
-.env
-
-# Backups
-*_backup/
-
-# Data files (tracked separately)
+# Data
 data/*.csv
-!data/.gitkeep
-
-# OS
-Thumbs.db
-.DS_Store
+data/*.db
+*.sqlite
