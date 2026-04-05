@@ -378,18 +378,15 @@ with tab_history:
         with col3:
             sort_order = st.selectbox("Sort by Date", ["Newest First", "Oldest First"])
 
-        # Apply the filters to create a filtered dataframe:
+        # Apply filters
         filtered_df = df.copy()
 
-        # Type filter
         if filter_type != "All":
             filtered_df = filtered_df[filtered_df['Type'] == filter_type]
 
-        # Category filter
         if filter_category != "All":
             filtered_df = filtered_df[filtered_df['Category'] == filter_category]
 
-        # Sort
         ascending = (sort_order == "Oldest First")
         filtered_df = filtered_df.sort_values(by="Date", ascending=ascending).reset_index(drop=True)
 
@@ -401,7 +398,7 @@ with tab_history:
             filtered_df,
             use_container_width=True,
             column_config={
-                "Date": st.column_config.DateColumn("📅 Date", format="DD/MM/YYYY"),
+                "Date": st.column_config.TextColumn("📅 Date"),
                 "Type": st.column_config.TextColumn("💱 Type"),
                 "Category": st.column_config.TextColumn("📁 Category"),
                 "Amount": st.column_config.NumberColumn("💵 Amount", format="₹%.2f"),
@@ -414,60 +411,57 @@ with tab_history:
         st.metric(label=f"💰 Total ({filter_type})", value=f"₹{total:,.2f}")
 
         # ── Delete Section ───────────────────
-st.markdown("---")
-st.subheader("🗑️ Delete Transaction")
+        st.markdown("---")
+        st.subheader("🗑️ Delete Transaction")
 
-if filtered_df.empty:
-    st.info("No matching transactions to delete.")
-else:
-    # Create a readable label for each transaction in the filtered view
-    df_with_label = filtered_df.copy()
-
-    # Convert Date to string format FIRST
-    df_with_label["Date_str"] = pd.to_datetime(df_with_label["Date"]).dt.strftime('%Y-%m-%d')
-
-    # Build label safely
-    df_with_label["Label"] = (
-        df_with_label["Date_str"] + " | " +
-        df_with_label["Category"].astype(str) + " | ₹" +
-        df_with_label["Amount"].astype(str) + " | " +
-        df_with_label["Description"].fillna("").astype(str)
-    )
-
-    # Add Type if column exists
-    if "Type" in df_with_label.columns:
-        df_with_label["Label"] = df_with_label["Label"] + " [" + df_with_label["Type"] + "]"
-
-    selected = st.selectbox("Select transaction to delete", df_with_label["Label"])
-
-    if st.button("🗑️ Delete Transaction", type="secondary"):
-        # Find the index of selected row in the ORIGINAL df
-        original_df_labeled = df.copy()
-
-        # Same conversion for original df
-        original_df_labeled["Date_str"] = pd.to_datetime(original_df_labeled["Date"]).dt.strftime('%Y-%m-%d')
-
-        original_df_labeled["Label"] = (
-            original_df_labeled["Date_str"] + " | " +
-            original_df_labeled["Category"].astype(str) + " | ₹" +
-            original_df_labeled["Amount"].astype(str) + " | " +
-            original_df_labeled["Description"].fillna("").astype(str)
-        )
-
-        if "Type" in original_df_labeled.columns:
-            original_df_labeled["Label"] = original_df_labeled["Label"] + " [" + original_df_labeled["Type"] + "]"
-
-        # Find index to delete
-        matching_rows = original_df_labeled[original_df_labeled["Label"] == selected]
-
-        if not matching_rows.empty:
-            index_to_delete = matching_rows.index[0]
-            df = df.drop(index=index_to_delete).reset_index(drop=True)
-            save_data(df)
-            st.success("✅ Transaction deleted successfully!")
-            st.rerun()
+        if filtered_df.empty:
+            st.info("No matching transactions to delete.")
         else:
-            st.error("❌ Could not find transaction to delete")
+            # Create a readable label for each transaction
+            df_with_label = filtered_df.copy()
+
+            # Convert Date to string safely
+            df_with_label["Date_str"] = pd.to_datetime(df_with_label["Date"], errors='coerce').dt.strftime('%Y-%m-%d')
+
+            df_with_label["Label"] = (
+                df_with_label["Date_str"].fillna("").astype(str) + " | " +
+                df_with_label["Category"].fillna("").astype(str) + " | ₹" +
+                df_with_label["Amount"].astype(str) + " | " +
+                df_with_label["Description"].fillna("").astype(str)
+            )
+
+            if "Type" in df_with_label.columns:
+                df_with_label["Label"] = df_with_label["Label"] + " [" + df_with_label["Type"].fillna("").astype(str) + "]"
+
+            selected = st.selectbox("Select transaction to delete", df_with_label["Label"])
+
+            if st.button("🗑️ Delete Transaction", type="secondary"):
+                # Find the index in ORIGINAL df
+                original_df_labeled = df.copy()
+                original_df_labeled["Date_str"] = pd.to_datetime(original_df_labeled["Date"], errors='coerce').dt.strftime('%Y-%m-%d')
+
+                original_df_labeled["Label"] = (
+                    original_df_labeled["Date_str"].fillna("").astype(str) + " | " +
+                    original_df_labeled["Category"].fillna("").astype(str) + " | ₹" +
+                    original_df_labeled["Amount"].astype(str) + " | " +
+                    original_df_labeled["Description"].fillna("").astype(str)
+                )
+
+                if "Type" in original_df_labeled.columns:
+                    original_df_labeled["Label"] = original_df_labeled["Label"] + " [" + original_df_labeled["Type"].fillna("").astype(str) + "]"
+
+                matching = original_df_labeled[original_df_labeled["Label"] == selected]
+
+                if not matching.empty:
+                    index_to_delete = matching.index[0]
+                    df = df.drop(index=index_to_delete).reset_index(drop=True)
+                    save_data(df)
+                    st.success("✅ Transaction deleted successfully!")
+                    st.rerun()
+                else:
+                    st.error("❌ Could not find transaction to delete")
+
+        # ── Export & Import Section ───────────────────
         st.markdown("---")
         st.markdown("### 📥 Export & Import")
 
@@ -492,15 +486,13 @@ else:
                 try:
                     new_df = pd.read_csv(uploaded_file)
 
-                    # Validate columns
                     required_cols = ['Date', 'Type', 'Category', 'Amount', 'Description']
                     if all(col in new_df.columns for col in required_cols):
-
-                        # Parse dates
                         new_df['Date'] = pd.to_datetime(new_df['Date']).astype(str)
 
-                        # Merge with existing data (avoid duplicates)
-                        combined_df = pd.concat([df, new_df]).drop_duplicates(subset=['Date', 'Category', 'Amount', 'Description']).reset_index(drop=True)
+                        combined_df = pd.concat([df, new_df]).drop_duplicates(
+                            subset=['Date', 'Category', 'Amount', 'Description']
+                        ).reset_index(drop=True)
 
                         if st.button("📤 Import Data", type="primary"):
                             save_data(combined_df)
