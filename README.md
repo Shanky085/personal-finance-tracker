@@ -4,12 +4,12 @@
 
 **AI-Powered Personal Finance Management**
 
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Click_Here-success?style=for-the-badge)](YOUR_STREAMLIT_URL)
-[![GitHub Stars](https://img.shields.io/github/stars/Shanky085/personal-finance-tracker?style=social)](https://github.com/Shanky085/personal-finance-tracker)
-[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg?style=social)](https://github.com/Shanky085/personal-finance-tracker/releases)
+## 🔗 Live Demos
 
-</div>
+- **v2.0 (Current):** https://personal-finance-tracker-hvurvtpaixefbvmzkzy2sx.streamlit.app
+- **v1.0 (Original):** https://finance-tracker-v1-ewsvdakdfpzlvjotnnsqpn.streamlit.app
 
+See [Release History](https://github.com/Shanky085/personal-finance-tracker/releases) for version comparison.
 ---
 
 ## ✨ Features
